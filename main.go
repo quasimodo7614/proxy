@@ -6,71 +6,67 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"golang.org/x/net/proxy"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"proxy/model"
+	"proxy/queue"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/tidwall/gjson"
 )
 
-type Msg struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+// Chat 所有相关参数的聚合
+type Chat struct {
+	JwtSecret     string
+	DisAbleJwt    bool
+	Queue         *queue.Queue
+	OpenAIUrl     string
+	SocksProxyUrl string
+	APIkey        string
 }
 
-type AiReq struct {
-	Model    string `json:"model"`
-	Messages []Msg  `json:"messages"`
-}
-
-type Resp struct {
-	Cont string `json:"cont"`
-}
-type Req struct {
-	Cont string `json:"cont"`
-}
-
-var JwtSecret string
-
-var DisAbleJwt = false
-
-func init() {
+func NewChat() *Chat {
+	chat := &Chat{}
 	if s := os.Getenv("JWT_Secret"); s != "" {
-		JwtSecret = s
+		chat.JwtSecret = s
 	} else {
-		JwtSecret = "123456"
+		chat.JwtSecret = "123456"
 	}
-
 	if s := os.Getenv("Disable_Jwt"); s == "true" {
-		DisAbleJwt = true
+		chat.DisAbleJwt = true
 	}
+	msgLen := 10
+	if i, _ := strconv.Atoi(os.Getenv("Msg_Array_Num")); i > 0 {
+		msgLen = i
+	}
+	chat.Queue = queue.New(msgLen)
 
-}
-
-func getUrl() string {
+	chat.OpenAIUrl = "https://api.openai.com/v1/chat/completions"
 	if s := os.Getenv("OPENAI_URL"); s != "" {
-		return s
+		chat.OpenAIUrl = s
 	}
-	return "https://api.openai.com/v1/chat/completions"
 
-}
-
-func getProxy() string {
+	chat.SocksProxyUrl = "127.0.0.1:1080"
 	if s := os.Getenv("PROXY_HOST"); s != "" {
-		return s
+		chat.SocksProxyUrl = s
 	}
-	return "127.0.0.1:1080"
 
+	if s := os.Getenv("OPENAI_API_KEY"); s != "" {
+		chat.APIkey = s
+	}
+
+	return chat
 }
 
-func ginChat() gin.HandlerFunc {
+func (chat *Chat) ginChat() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
@@ -80,7 +76,7 @@ func ginChat() gin.HandlerFunc {
 			})
 			return
 		}
-		req := &Req{}
+		req := &model.Req{}
 		err = json.Unmarshal(bodyBytes, req)
 		if err != nil {
 			log.Println("unmarshal err: ", err)
@@ -89,8 +85,8 @@ func ginChat() gin.HandlerFunc {
 			})
 			return
 		}
-		resp := &Resp{}
-		respB, err := dopost(req.Cont)
+		resp := &model.Resp{}
+		respB, err := chat.dopost(req.Cont)
 		if err != nil {
 			log.Println("do post  err: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -105,13 +101,13 @@ func ginChat() gin.HandlerFunc {
 
 }
 
-func JwtCheck() gin.HandlerFunc {
+func (chat *Chat) JwtCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if DisAbleJwt {
+		if chat.DisAbleJwt {
 			return
 		}
 		tokenString := c.GetHeader("Authorization")
-		var hmacSampleSecret = []byte(JwtSecret)
+		var hmacSampleSecret = []byte(chat.JwtSecret)
 		//前面例子生成的token
 		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
 			return hmacSampleSecret, nil
@@ -149,18 +145,6 @@ func Cors() gin.HandlerFunc {
 	}
 }
 
-func main() {
-
-	r := gin.Default()
-	r.Use(JwtCheck(), Cors())
-
-	r.POST("/chat", ginChat())
-	if err := r.Run(getSvc()); err != nil {
-		log.Fatal("start err: ", err)
-	}
-
-}
-
 func getSvc() string {
 	if s := os.Getenv("SVC_ADDR"); s != "" {
 		return s
@@ -168,42 +152,50 @@ func getSvc() string {
 	return ":9298"
 }
 
-func getApiKey() string {
-	if s := os.Getenv("OPENAI_API_KEY"); s != "" {
-		return s
+func main() {
+
+	r := gin.Default()
+	chat := NewChat()
+	r.Use(chat.JwtCheck(), Cors())
+
+	r.POST("/chat", chat.ginChat())
+	if err := r.Run(getSvc()); err != nil {
+		log.Fatal("start err: ", err)
 	}
-	return ""
+
 }
-func dopost(content string) ([]byte, error) {
-	client, err := NewClientFromEnv()
+
+func (chat *Chat) dopost(content string) ([]byte, error) {
+	client, err := chat.NewClientFromEnv()
 	if err != nil {
 		log.Println("new client err: ", err.Error())
 		return nil, err
 	}
-	reqRaw := AiReq{
+	reqRaw := model.AiReq{
 		Model: "gpt-3.5-turbo",
-		Messages: []Msg{
+		Messages: []model.Msg{
 			{
 				Role:    "user",
 				Content: content,
 			},
 		},
 	}
+	reqRaw.Messages = append(reqRaw.Messages, chat.Queue.GetMsg()...)
 	b, err := json.Marshal(reqRaw)
 	if err != nil {
 		log.Println(err, " marshal err")
 		return nil, err
 	}
 	log.Println("req raw is: ", string(b))
-	req, err := http.NewRequest("POST", getUrl(), bytes.NewReader(b))
+	req, err := http.NewRequest("POST", chat.OpenAIUrl, bytes.NewReader(b))
 	if err != nil {
 		log.Println(err, " new request")
 		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+getApiKey())
-	fmt.Println("req header is: ", req.Header)
+	req.Header.Set("Authorization", "Bearer "+chat.APIkey)
+	//fmt.Println("req header is: ", req.Header)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("client req err:", err.Error())
@@ -215,14 +207,17 @@ func dopost(content string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("resp is:", string(out))
+	//fmt.Println("resp is:", string(out))
+	respCont := gjson.Get(string(out), "choices.0.message.content").String()
+	//log.Println("respCont is:", respCont)
+	chat.Queue.Add(respCont)
 	return out, nil
 
 }
 
-// Golang example that creates an http client that leverages a SOCKS5 proxy and a DialContext
-func NewClientFromEnv() (*http.Client, error) {
-	proxyHost := getProxy()
+// NewClientFromEnv  example that creates an http client that leverages a SOCKS5 proxy and a DialContext
+func (chat *Chat) NewClientFromEnv() (*http.Client, error) {
+	proxyHost := chat.SocksProxyUrl
 
 	baseDialer := &net.Dialer{
 		Timeout:   30 * time.Second,
