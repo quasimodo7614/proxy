@@ -68,7 +68,7 @@ func ginChat() gin.HandlerFunc {
 		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			log.Println("read body err: ", err)
-			c.JSON(http.StatusBadRequest, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"read body err ": err.Error(),
 			})
 			return
@@ -77,7 +77,7 @@ func ginChat() gin.HandlerFunc {
 		err = json.Unmarshal(bodyBytes, req)
 		if err != nil {
 			log.Println("unmarshal err: ", err)
-			c.JSON(http.StatusBadRequest, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"read body err ": err.Error(),
 			})
 			return
@@ -86,7 +86,7 @@ func ginChat() gin.HandlerFunc {
 		respB, err := dopost(req.Cont)
 		if err != nil {
 			log.Println("do post  err: ", err)
-			c.JSON(http.StatusBadRequest, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"read body err ": err.Error(),
 			})
 			return
