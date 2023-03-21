@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 type Msg struct {
@@ -34,6 +35,16 @@ type Resp struct {
 }
 type Req struct {
 	Cont string `json:"cont"`
+}
+
+var JwtSecret string
+
+func init() {
+	if s := os.Getenv("JWT_Secret"); s != "" {
+		JwtSecret = s
+	} else {
+		JwtSecret = "123456"
+	}
 }
 
 func getUrl() string {
@@ -87,6 +98,29 @@ func ginChat() gin.HandlerFunc {
 
 }
 
+func JwtCheck() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.GetHeader("Authorization")
+		var hmacSampleSecret = []byte(JwtSecret)
+		//前面例子生成的token
+		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
+			return hmacSampleSecret, nil
+		})
+
+		if err != nil {
+			log.Println("ParseWithClaims err: ", err)
+			c.AbortWithStatusJSON(400, err.Error())
+			return
+		}
+		if !token.Valid {
+			c.AbortWithStatusJSON(400, err.Error())
+			return
+		}
+		log.Println("token valid")
+		c.Next()
+	}
+}
+
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -108,7 +142,7 @@ func Cors() gin.HandlerFunc {
 func main() {
 
 	r := gin.Default()
-	r.Use(Cors())
+	r.Use(JwtCheck(), Cors())
 
 	r.POST("/chat", ginChat())
 	if err := r.Run(getSvc()); err != nil {
