@@ -39,12 +39,19 @@ type Req struct {
 
 var JwtSecret string
 
+var DisAbleJwt = false
+
 func init() {
 	if s := os.Getenv("JWT_Secret"); s != "" {
 		JwtSecret = s
 	} else {
 		JwtSecret = "123456"
 	}
+
+	if s := os.Getenv("Disable_Jwt"); s == "true" {
+		DisAbleJwt = true
+	}
+
 }
 
 func getUrl() string {
@@ -100,6 +107,9 @@ func ginChat() gin.HandlerFunc {
 
 func JwtCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if DisAbleJwt {
+			return
+		}
 		tokenString := c.GetHeader("Authorization")
 		var hmacSampleSecret = []byte(JwtSecret)
 		//前面例子生成的token
