@@ -12,39 +12,31 @@ import (
 	"net"
 	"net/http"
 	"os"
+	jwt2 "proxy/jwt"
 	"proxy/model"
 	"proxy/queue"
+	"proxy/user"
 	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"github.com/tidwall/gjson"
 )
 
 // Chat 所有相关参数的聚合
 type Chat struct {
-	JwtSecret     string
-	DisAbleJwt    bool
 	Queue         *queue.Queue
 	OpenAIUrl     string
 	SocksProxyUrl string
 	APIkey        string
+	Continue      bool
 }
 
 var qps = map[int]time.Time{}
 
 func NewChat() *Chat {
 	chat := &Chat{}
-	if s := os.Getenv("JWT_Secret"); s != "" {
-		chat.JwtSecret = s
-	} else {
-		chat.JwtSecret = "123456"
-	}
-	if s := os.Getenv("Disable_Jwt"); s == "true" {
-		chat.DisAbleJwt = true
-	}
 	msgLen := 10
 	if i, _ := strconv.Atoi(os.Getenv("Msg_Array_Num")); i > 0 {
 		msgLen = i
@@ -63,6 +55,10 @@ func NewChat() *Chat {
 
 	if s := os.Getenv("OPENAI_API_KEY"); s != "" {
 		chat.APIkey = s
+	}
+
+	if s := os.Getenv("Continue_Chat"); s == "true" {
+		chat.Continue = true
 	}
 
 	return chat
@@ -121,32 +117,6 @@ func qpsmiddleware() gin.HandlerFunc {
 	}
 }
 
-func (chat *Chat) JwtCheck() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if chat.DisAbleJwt {
-			return
-		}
-		tokenString := c.GetHeader("Authorization")
-		var hmacSampleSecret = []byte(chat.JwtSecret)
-		//前面例子生成的token
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
-			return hmacSampleSecret, nil
-		})
-
-		if err != nil {
-			log.Println("ParseWithClaims err: ", err)
-			c.AbortWithStatusJSON(400, err.Error())
-			return
-		}
-		if !token.Valid {
-			c.AbortWithStatusJSON(400, err.Error())
-			return
-		}
-		log.Println("token valid")
-		c.Next()
-	}
-}
-
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -176,9 +146,10 @@ func main() {
 
 	r := gin.Default()
 	chat := NewChat()
-	r.Use(qpsmiddleware(), chat.JwtCheck(), Cors())
+	r.Use(qpsmiddleware(), jwt2.JwtCheck(), Cors())
 
 	r.POST("/chat", chat.ginChat())
+	r.POST("/user", user.User())
 	if err := r.Run(getSvc()); err != nil {
 		log.Fatal("start err: ", err)
 	}
@@ -194,10 +165,11 @@ func (chat *Chat) dopost(content string) ([]byte, error) {
 	reqRaw := model.AiReq{
 		Model: "gpt-3.5-turbo",
 	}
-	reqMsgs := append(chat.Queue.GetMsg(), model.Msg{Role: "user", Content: content})
-	//reqMsgs := []model.Msg{{Role: "user", Content: content}}
+	reqMsgs := []model.Msg{{Role: "user", Content: content}}
 	reqRaw.Messages = reqMsgs
-	reqRaw.Messages = append(reqRaw.Messages, chat.Queue.GetMsg()...)
+	if chat.Continue {
+		reqRaw.Messages = append(reqRaw.Messages, chat.Queue.GetMsg()...)
+	}
 	b, err := json.Marshal(reqRaw)
 	if err != nil {
 		log.Println(err, " marshal err")

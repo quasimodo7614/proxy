@@ -16,3 +16,12 @@ type Resp struct {
 type Req struct {
 	Cont string `json:"cont"`
 }
+
+type User struct {
+	User string `json:"User"`
+	Pwd  string `json:"Pwd"`
+}
+
+type GenTokenResp struct {
+	Jwt string `json:"Jwt"`
+}
