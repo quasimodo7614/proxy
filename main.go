@@ -33,6 +33,8 @@ type Chat struct {
 	APIkey        string
 }
 
+var qps = map[int]time.Time{}
+
 func NewChat() *Chat {
 	chat := &Chat{}
 	if s := os.Getenv("JWT_Secret"); s != "" {
@@ -101,6 +103,24 @@ func (chat *Chat) ginChat() gin.HandlerFunc {
 
 }
 
+// 需要限制一个 qps ，不然答案和问题对不上
+func qpsmiddleware() gin.HandlerFunc {
+	if qps == nil {
+		qps = map[int]time.Time{}
+	}
+	return func(c *gin.Context) {
+		last, ok := qps[1]
+		// 说明上次请求时间是 10s 以内，并且还没响应
+		if ok && last.Add(time.Second*10).After(time.Now()) {
+			c.AbortWithStatusJSON(400, "正在处理其他问题，请耐心等候10s左右")
+			return
+		}
+		qps[1] = time.Now()
+		c.Next()
+		delete(qps, 1)
+	}
+}
+
 func (chat *Chat) JwtCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if chat.DisAbleJwt {
@@ -156,7 +176,7 @@ func main() {
 
 	r := gin.Default()
 	chat := NewChat()
-	r.Use(chat.JwtCheck(), Cors())
+	r.Use(qpsmiddleware(), chat.JwtCheck(), Cors())
 
 	r.POST("/chat", chat.ginChat())
 	if err := r.Run(getSvc()); err != nil {
@@ -173,13 +193,10 @@ func (chat *Chat) dopost(content string) ([]byte, error) {
 	}
 	reqRaw := model.AiReq{
 		Model: "gpt-3.5-turbo",
-		Messages: []model.Msg{
-			{
-				Role:    "user",
-				Content: content,
-			},
-		},
 	}
+	reqMsgs := append(chat.Queue.GetMsg(), model.Msg{Role: "user", Content: content})
+	//reqMsgs := []model.Msg{{Role: "user", Content: content}}
+	reqRaw.Messages = reqMsgs
 	reqRaw.Messages = append(reqRaw.Messages, chat.Queue.GetMsg()...)
 	b, err := json.Marshal(reqRaw)
 	if err != nil {
