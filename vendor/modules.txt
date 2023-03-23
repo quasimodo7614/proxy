@@ -1,3 +1,6 @@
+# github.com/bradfitz/gomemcache v0.0.0-20220106215444-fb4bf637b56d
+## explicit; go 1.12
+github.com/bradfitz/gomemcache/memcache
 # github.com/bytedance/sonic v1.8.0
 ## explicit; go 1.15
 github.com/bytedance/sonic
@@ -19,9 +22,18 @@ github.com/bytedance/sonic/loader
 github.com/bytedance/sonic/option
 github.com/bytedance/sonic/unquote
 github.com/bytedance/sonic/utf8
+# github.com/cespare/xxhash/v2 v2.1.2
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
 # github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
 ## explicit; go 1.15
 github.com/chenzhuoyu/base64x
+# github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+## explicit
+github.com/dgryski/go-rendezvous
+# github.com/fatih/structs v1.1.0
+## explicit
+github.com/fatih/structs
 # github.com/gin-contrib/sse v0.1.0
 ## explicit; go 1.12
 github.com/gin-contrib/sse
@@ -42,6 +54,16 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.11.2
 ## explicit; go 1.18
 github.com/go-playground/validator/v10
+# github.com/go-redis/redis/v8 v8.11.5
+## explicit; go 1.17
+github.com/go-redis/redis/v8
+github.com/go-redis/redis/v8/internal
+github.com/go-redis/redis/v8/internal/hashtag
+github.com/go-redis/redis/v8/internal/hscan
+github.com/go-redis/redis/v8/internal/pool
+github.com/go-redis/redis/v8/internal/proto
+github.com/go-redis/redis/v8/internal/rand
+github.com/go-redis/redis/v8/internal/util
 # github.com/goccy/go-json v0.10.0
 ## explicit; go 1.12
 github.com/goccy/go-json
@@ -81,6 +103,82 @@ github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pelletier/go-toml/v2/unstable
+# github.com/silenceper/wechat/v2 v2.1.4
+## explicit; go 1.16
+github.com/silenceper/wechat/v2
+github.com/silenceper/wechat/v2/cache
+github.com/silenceper/wechat/v2/credential
+github.com/silenceper/wechat/v2/miniprogram
+github.com/silenceper/wechat/v2/miniprogram/analysis
+github.com/silenceper/wechat/v2/miniprogram/auth
+github.com/silenceper/wechat/v2/miniprogram/business
+github.com/silenceper/wechat/v2/miniprogram/config
+github.com/silenceper/wechat/v2/miniprogram/content
+github.com/silenceper/wechat/v2/miniprogram/context
+github.com/silenceper/wechat/v2/miniprogram/encryptor
+github.com/silenceper/wechat/v2/miniprogram/message
+github.com/silenceper/wechat/v2/miniprogram/privacy
+github.com/silenceper/wechat/v2/miniprogram/qrcode
+github.com/silenceper/wechat/v2/miniprogram/riskcontrol
+github.com/silenceper/wechat/v2/miniprogram/security
+github.com/silenceper/wechat/v2/miniprogram/shortlink
+github.com/silenceper/wechat/v2/miniprogram/subscribe
+github.com/silenceper/wechat/v2/miniprogram/tcb
+github.com/silenceper/wechat/v2/miniprogram/urllink
+github.com/silenceper/wechat/v2/miniprogram/urlscheme
+github.com/silenceper/wechat/v2/miniprogram/werun
+github.com/silenceper/wechat/v2/officialaccount
+github.com/silenceper/wechat/v2/officialaccount/basic
+github.com/silenceper/wechat/v2/officialaccount/broadcast
+github.com/silenceper/wechat/v2/officialaccount/config
+github.com/silenceper/wechat/v2/officialaccount/context
+github.com/silenceper/wechat/v2/officialaccount/customerservice
+github.com/silenceper/wechat/v2/officialaccount/datacube
+github.com/silenceper/wechat/v2/officialaccount/device
+github.com/silenceper/wechat/v2/officialaccount/draft
+github.com/silenceper/wechat/v2/officialaccount/freepublish
+github.com/silenceper/wechat/v2/officialaccount/js
+github.com/silenceper/wechat/v2/officialaccount/material
+github.com/silenceper/wechat/v2/officialaccount/menu
+github.com/silenceper/wechat/v2/officialaccount/message
+github.com/silenceper/wechat/v2/officialaccount/oauth
+github.com/silenceper/wechat/v2/officialaccount/ocr
+github.com/silenceper/wechat/v2/officialaccount/server
+github.com/silenceper/wechat/v2/officialaccount/user
+github.com/silenceper/wechat/v2/openplatform
+github.com/silenceper/wechat/v2/openplatform/account
+github.com/silenceper/wechat/v2/openplatform/config
+github.com/silenceper/wechat/v2/openplatform/context
+github.com/silenceper/wechat/v2/openplatform/miniprogram
+github.com/silenceper/wechat/v2/openplatform/miniprogram/basic
+github.com/silenceper/wechat/v2/openplatform/miniprogram/component
+github.com/silenceper/wechat/v2/openplatform/officialaccount
+github.com/silenceper/wechat/v2/openplatform/officialaccount/js
+github.com/silenceper/wechat/v2/openplatform/officialaccount/oauth
+github.com/silenceper/wechat/v2/pay
+github.com/silenceper/wechat/v2/pay/config
+github.com/silenceper/wechat/v2/pay/notify
+github.com/silenceper/wechat/v2/pay/order
+github.com/silenceper/wechat/v2/pay/refund
+github.com/silenceper/wechat/v2/pay/transfer
+github.com/silenceper/wechat/v2/util
+github.com/silenceper/wechat/v2/work
+github.com/silenceper/wechat/v2/work/addresslist
+github.com/silenceper/wechat/v2/work/config
+github.com/silenceper/wechat/v2/work/context
+github.com/silenceper/wechat/v2/work/externalcontact
+github.com/silenceper/wechat/v2/work/kf
+github.com/silenceper/wechat/v2/work/kf/syncmsg
+github.com/silenceper/wechat/v2/work/material
+github.com/silenceper/wechat/v2/work/msgaudit
+github.com/silenceper/wechat/v2/work/oauth
+github.com/silenceper/wechat/v2/work/robot
+# github.com/sirupsen/logrus v1.9.0
+## explicit; go 1.13
+github.com/sirupsen/logrus
+# github.com/spf13/cast v1.4.1
+## explicit
+github.com/spf13/cast
 # github.com/tidwall/gjson v1.14.4
 ## explicit; go 1.12
 github.com/tidwall/gjson
@@ -117,6 +215,8 @@ github.com/ugorji/go/codec
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.5.0
 ## explicit; go 1.17
+golang.org/x/crypto/pkcs12
+golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/sha3
 # golang.org/x/net v0.8.0
 ## explicit; go 1.17
@@ -130,7 +230,9 @@ golang.org/x/net/proxy
 # golang.org/x/sys v0.6.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/text v0.8.0
 ## explicit; go 1.17
 golang.org/x/text/internal/language

@@ -12,10 +12,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	jwt2 "proxy/jwt"
 	"proxy/model"
 	"proxy/queue"
 	"proxy/user"
+	"proxy/wx"
 	"runtime"
 	"strconv"
 	"time"
@@ -146,10 +146,12 @@ func main() {
 
 	r := gin.Default()
 	chat := NewChat()
-	r.Use(qpsmiddleware(), jwt2.JwtCheck(), Cors())
+	r.Use(qpsmiddleware(), Cors())
 
 	r.POST("/chat", chat.ginChat())
 	r.POST("/user", user.User())
+	r.GET("/wx", wx.Wx())
+	r.POST("/wx", wx.WXMsgReceive)
 	if err := r.Run(getSvc()); err != nil {
 		log.Fatal("start err: ", err)
 	}
