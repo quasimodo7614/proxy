@@ -26,8 +26,11 @@ type GenTokenResp struct {
 	Jwt string `json:"Jwt"`
 }
 
+type Url struct {
+	Url string `json:"url"`
+}
 type ImageResp struct {
-	Cont string `json:"cont"`
+	Data []Url `json:"data"`
 }
 
 type ImageReq struct {

@@ -27,6 +27,7 @@ type Chat struct {
 	Queue         *queue.Queue
 	ChatUrl       string
 	ImageUrl      string
+	ImageSize     string
 	SocksProxyUrl string
 	APIkey        string
 	Continue      bool
@@ -48,7 +49,11 @@ func NewChat() *Chat {
 	}
 	chat.ImageUrl = "https://api.openai.com/v1/images/generations"
 	if s := os.Getenv("ImageUrl"); s != "" {
-		chat.ChatUrl = s
+		chat.ImageUrl = s
+	}
+	chat.ImageSize = "512x512"
+	if s := os.Getenv("ImageSize"); s != "" {
+		chat.ImageSize = s
 	}
 
 	chat.SocksProxyUrl = "127.0.0.1:1080"
@@ -129,7 +134,7 @@ func (chat *Chat) ginImage() gin.HandlerFunc {
 		reqRaw := &model.AiImageReq{
 			Prompt: req.Msg,
 			N:      1, // 暂时写死1
-			Size:   "1024x1024",
+			Size:   chat.ImageSize,
 		}
 		respB, err := chat.dopost(reqRaw, chat.ImageUrl)
 		if err != nil {
@@ -139,7 +144,14 @@ func (chat *Chat) ginImage() gin.HandlerFunc {
 			})
 			return
 		}
-		resp.Cont = string(respB)
+		if err = json.Unmarshal(respB, &resp); err != nil {
+			log.Println("unmarshal err :", err)
+			log.Println("resp is:", string(respB))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				" Unmarshal resp": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusOK, resp)
 		return
 	}
