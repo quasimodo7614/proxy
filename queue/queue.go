@@ -26,6 +26,14 @@ func (q *Queue) Add(s string) {
 	q.Msg = append(q.Msg, msg)
 }
 
+func (q *Queue) Reset() {
+
+	if q == nil {
+		return
+	}
+	q.Msg = nil
+}
+
 func (q *Queue) GetMsg() []model.Msg {
 	return q.Msg
 }

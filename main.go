@@ -17,11 +17,9 @@ import (
 	"proxy/user"
 	"proxy/wx"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tidwall/gjson"
 )
 
 // Chat 所有相关参数的聚合
@@ -37,11 +35,11 @@ var qps = map[int]time.Time{}
 
 func NewChat() *Chat {
 	chat := &Chat{}
-	msgLen := 10
-	if i, _ := strconv.Atoi(os.Getenv("Msg_Array_Num")); i > 0 {
-		msgLen = i
-	}
-	chat.Queue = queue.New(msgLen)
+	//msgLen := 100
+	//if i, _ := strconv.Atoi(os.Getenv("Msg_Array_Num")); i > 0 {
+	//	msgLen = i
+	//}
+	//chat.Queue = queue.New(msgLen)
 
 	chat.OpenAIUrl = "https://api.openai.com/v1/chat/completions"
 	if s := os.Getenv("OPENAI_URL"); s != "" {
@@ -84,7 +82,51 @@ func (chat *Chat) ginChat() gin.HandlerFunc {
 			return
 		}
 		resp := &model.Resp{}
-		respB, err := chat.dopost(req.Cont)
+		reqRaw := model.AiReq{
+			Model: "gpt-3.5-turbo",
+		}
+		reqRaw.Messages = req.Msg
+		respB, err := chat.dopost(reqRaw)
+		if err != nil {
+			log.Println("do post  err: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"read body err ": err.Error(),
+			})
+			return
+		}
+		resp.Cont = string(respB)
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+}
+
+func (chat *Chat) ginImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Println("read body err: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"read body err ": err.Error(),
+			})
+			return
+		}
+		req := &model.ImageReq{}
+		err = json.Unmarshal(bodyBytes, req)
+		if err != nil {
+			log.Println("unmarshal err: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"read body err ": err.Error(),
+			})
+			return
+		}
+		resp := &model.ImageResp{}
+		reqRaw := &model.AiImageReq{
+			Prompt: req.Msg,
+			N:      1, // 暂时写死1
+			Size:   "1024x1024",
+		}
+		respB, err := chat.dopost(reqRaw)
 		if err != nil {
 			log.Println("do post  err: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -149,6 +191,7 @@ func main() {
 	r.Use(qpsmiddleware(), Cors())
 
 	r.POST("/chat", chat.ginChat())
+	r.POST("/image", chat.ginImage())
 	r.POST("/user", user.User())
 	r.GET("/wx", wx.Wx())
 	r.POST("/wx", wx.WXMsgReceive)
@@ -158,21 +201,15 @@ func main() {
 
 }
 
-func (chat *Chat) dopost(content string) ([]byte, error) {
+// assistants 是用来做连续对话的，是之前问题的答案。
+func (chat *Chat) dopost(msg interface{}) ([]byte, error) {
 	client, err := chat.NewClientFromEnv()
 	if err != nil {
 		log.Println("new client err: ", err.Error())
 		return nil, err
 	}
-	reqRaw := model.AiReq{
-		Model: "gpt-3.5-turbo",
-	}
-	reqMsgs := []model.Msg{{Role: "user", Content: content}}
-	reqRaw.Messages = reqMsgs
-	if chat.Continue {
-		reqRaw.Messages = append(reqRaw.Messages, chat.Queue.GetMsg()...)
-	}
-	b, err := json.Marshal(reqRaw)
+
+	b, err := json.Marshal(msg)
 	if err != nil {
 		log.Println(err, " marshal err")
 		return nil, err
@@ -198,10 +235,10 @@ func (chat *Chat) dopost(content string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("resp is:", string(out))
-	respCont := gjson.Get(string(out), "choices.0.message.content").String()
-	//log.Println("respCont is:", respCont)
-	chat.Queue.Add(respCont)
+	////fmt.Println("resp is:", string(out))
+	//respCont := gjson.Get(string(out), "choices.0.message.content").String()
+	////log.Println("respCont is:", respCont)
+	//chat.Queue.Add(respCont)
 	return out, nil
 
 }

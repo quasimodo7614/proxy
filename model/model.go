@@ -14,7 +14,7 @@ type Resp struct {
 	Cont string `json:"cont"`
 }
 type Req struct {
-	Cont string `json:"cont"`
+	Msg []Msg
 }
 
 type User struct {
@@ -24,4 +24,18 @@ type User struct {
 
 type GenTokenResp struct {
 	Jwt string `json:"Jwt"`
+}
+
+type ImageResp struct {
+	Cont string `json:"cont"`
+}
+
+type ImageReq struct {
+	Msg string `json:"msg"`
+}
+
+type AiImageReq struct {
+	Prompt string `json:"prompt"`
+	N      int    `json:"n"`
+	Size   string `json:"size"`
 }
