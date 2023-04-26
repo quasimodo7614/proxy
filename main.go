@@ -25,7 +25,8 @@ import (
 // Chat 所有相关参数的聚合
 type Chat struct {
 	Queue         *queue.Queue
-	OpenAIUrl     string
+	ChatUrl       string
+	ImageUrl      string
 	SocksProxyUrl string
 	APIkey        string
 	Continue      bool
@@ -41,9 +42,13 @@ func NewChat() *Chat {
 	//}
 	//chat.Queue = queue.New(msgLen)
 
-	chat.OpenAIUrl = "https://api.openai.com/v1/chat/completions"
-	if s := os.Getenv("OPENAI_URL"); s != "" {
-		chat.OpenAIUrl = s
+	chat.ChatUrl = "https://api.openai.com/v1/chat/completions"
+	if s := os.Getenv("ChatUrl"); s != "" {
+		chat.ChatUrl = s
+	}
+	chat.ImageUrl = "https://api.openai.com/v1/images/generations"
+	if s := os.Getenv("ImageUrl"); s != "" {
+		chat.ChatUrl = s
 	}
 
 	chat.SocksProxyUrl = "127.0.0.1:1080"
@@ -86,7 +91,7 @@ func (chat *Chat) ginChat() gin.HandlerFunc {
 			Model: "gpt-3.5-turbo",
 		}
 		reqRaw.Messages = req.Msg
-		respB, err := chat.dopost(reqRaw)
+		respB, err := chat.dopost(reqRaw, chat.ChatUrl)
 		if err != nil {
 			log.Println("do post  err: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -126,7 +131,7 @@ func (chat *Chat) ginImage() gin.HandlerFunc {
 			N:      1, // 暂时写死1
 			Size:   "1024x1024",
 		}
-		respB, err := chat.dopost(reqRaw)
+		respB, err := chat.dopost(reqRaw, chat.ImageUrl)
 		if err != nil {
 			log.Println("do post  err: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -202,7 +207,7 @@ func main() {
 }
 
 // assistants 是用来做连续对话的，是之前问题的答案。
-func (chat *Chat) dopost(msg interface{}) ([]byte, error) {
+func (chat *Chat) dopost(msg interface{}, url string) ([]byte, error) {
 	client, err := chat.NewClientFromEnv()
 	if err != nil {
 		log.Println("new client err: ", err.Error())
@@ -215,7 +220,7 @@ func (chat *Chat) dopost(msg interface{}) ([]byte, error) {
 		return nil, err
 	}
 	log.Println("req raw is: ", string(b))
-	req, err := http.NewRequest("POST", chat.OpenAIUrl, bytes.NewReader(b))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
 		log.Println(err, " new request")
 		return nil, err
